@@ -3,34 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iframe Template</title>
+  <title>Bing Search Embed</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f0f0f0;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100vh;
-      border: 2px solid #333;
-      border-radius: 8px;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input[type="text"] { width: 300px; padding: 8px; }
+    button { padding: 8px 12px; margin-left: 5px; }
+    .result { margin-bottom: 15px; }
+    .result a { text-decoration: none; color: blue; font-weight: bold; }
+    .result p { margin: 5px 0 0; }
   </style>
 </head>
 <body>
+  <h1>Bing Search Embed</h1>
+  <input type="text" id="query" placeholder="Type your search..." />
+  <button onclick="searchBing()">Search</button>
 
-  <iframe 
-    src="https://searx.stream/search" 
-    title="Embedded Page" 
-    loading="lazy" 
-    allowfullscreen>
-  </iframe>
+  <div id="results"></div>
 
+  <script>
+    const apiKey = "YOUR_API_KEY_HERE"; // Replace with your Azure Bing Search API key
+    const endpoint = "https://api.bing.microsoft.com/v7.0/search";
+
+    async function searchBing() {
+      const query = document.getElementById("query").value;
+      if (!query) return alert("Please enter a search term.");
+
+      document.getElementById("results").innerHTML = "Searching...";
+
+      try {
+        const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`, {
+          headers: { "Ocp-Apim-Subscription-Key": apiKey }
+        });
+
+        const data = await response.json();
+
+        if (!data.webPages) {
+          document.getElementById("results").innerHTML = "No results found.";
+          return;
+        }
+
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "";
+
+        data.webPages.value.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "result";
+          div.innerHTML = `
+            <a href="${item.url}" target="_blank">${item.name}</a>
+            <p>${item.snippet}</p>
+          `;
+          resultsDiv.appendChild(div);
+        });
+
+      } catch (error) {
+        console.error(error);
+        document.getElementById("results").innerHTML = "Error fetching results.";
+      }
+    }
+  </script>
 </body>
 </html>
