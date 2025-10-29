@@ -2,43 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Link + Popup Example</title>
+  <title>Open Vercel Deployment</title>
 </head>
 <body>
-  <a href="https://google.com" onclick="openPopupAndLink(); return false;">
-    Open Link and Popup
-  </a>
+  <button id="openVercel">Open Vercel App</button>
 
   <script>
-    function openPopupAndLink() {
-      // 1️⃣ Open your main link in a new tab
-      window.open('https://schoolhelp-ochre.vercel.app/', '_blank');
+    document.getElementById('openVercel').addEventListener('click', () => {
+      // 1. Open a blank tab
+      let popup = window.open('about:blank', '_blank');
 
-      // 2️⃣ Open a blank popup
-      const popup = window.open('about:blank', 'popup', 'width=800,height=600');
+      if (!popup) {
+        alert('Popup blocked! Please allow popups for this site.');
+        return;
+      }
 
-      // 3️⃣ Optional: Show loading message
-      popup.document.write('<h2>Loading content from GitHub...</h2>');
+      // 2. Write a temporary loading message in the blank tab
+      popup.document.write(`
+        <html>
+          <head>
+            <title>Loading...</title>
+            <style>
+              body { display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+              h1 { color: #555; }
+            </style>
+          </head>
+          <body>
+            <h1>Loading your Vercel app...</h1>
+          </body>
+        </html>
+      `);
 
-      // 4️⃣ Fetch content from GitHub
-      const githubURL = 'https://raw.githubusercontent.com/gageisgarbage/school-bypasses/main/google.html';
-
-      fetch(githubURL)
-        .then(response => {
-          if (!response.ok) throw new Error('Failed to load GitHub content');
-          return response.text();
-        })
-        .then(html => {
-          // Replace popup content with GitHub HTML
-          popup.document.open();
-          popup.document.write(html);
-          popup.document.close();
-        })
-        .catch(err => {
-          popup.document.write('<p style="color:red;">Error loading content.</p>');
-          console.error(err);
-        });
-    }
+      // 3. Wait a tiny bit (optional) and then redirect to your Vercel deployment
+      setTimeout(() => {
+        popup.location.href = 'https://schoolhelp-ochre.vercel.app'; // <-- replace with your deployment URL
+      }, 500); // 500ms for loading effect
+    });
   </script>
 </body>
 </html>
