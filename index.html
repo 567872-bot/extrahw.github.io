@@ -1,42 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Open Vercel Deployment</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Open SchoolTutor</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; line-height:1.4; padding:20px; }
+    label,input { font-size: 14px; }
+    input { width: 100%; padding: 8px; margin: 6px 0 12px 0; box-sizing: border-box; }
+    button { padding: 10px 14px; font-size: 15px; cursor:pointer; }
+    .note { margin-top:12px; color:#555; font-size:13px; }
+    .danger { color:#a00; font-weight:600; }
+  </style>
 </head>
 <body>
-  <button id="openVercel">Open Vercel App</button>
+  <h2>Open SchoolTutor<code>about:blank</code> tab</h2>
+
+  <label for="url">GitHub Pages URL (include https://):</label>
+  <input id="url" type="url" placeholder="https://567872-bot.github.io/schooltutor.github.io/" value="https://567872-bot.github.io/schooltutor.github.io/" />
+
+  <div>
+    <button id="openBtn">Open in new about:blank tab</button>
+    <button id="openSameBtn">Open in same tab (about:blank)</button>
+  </div>
+
+  <p class="note">
+    This will open a blank tab and inject an <code>&lt;iframe&gt;</code> that loads the URL you provide. If the site blocks embedding (X-Frame-Options or CSP), the iframe will not render.
+  </p>
 
   <script>
-    document.getElementById('openVercel').addEventListener('click', () => {
-      // 1. Open a blank tab
-      let popup = window.open('about:blank', '_blank');
+    function createAboutBlankWithIframe(siteUrl, targetWindow) {
+      // Build the HTML we will write into the about:blank window
+      const html = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Embedded: ${escapeHtml(siteUrl)}</title>
+    <style>html,body{height:100%;margin:0;}body{overflow:hidden;font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#444} .message{position:absolute;left:12px;top:12px;background:rgba(255,255,255,0.95);padding:10px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.08)} </style>
+  </head>
+  <body>
+    <iframe id="embed" src="${escapeAttr(siteUrl)}" style="width:100vw;height:100vh;border:none;"></iframe>
+    <div id="msg" class="message" style="display:none;"></div>
 
-      if (!popup) {
-        alert('Popup blocked! Please allow popups for this site.');
-        return;
+    <script>
+      // Try to detect if the iframe failed to load due to frame-ancestors/X-Frame-Options/CSP
+      const iframe = document.getElementById('embed');
+      const msg = document.getElementById('msg');
+
+      // Basic helper to show fallback message and link
+      function showFallback(reason) {
+        msg.style.display = 'block';
+        msg.innerHTML = '<strong>Embedding blocked or failed</strong><div style="margin-top:6px;">Reason: ' + reason + '</div>' +
+                        '<div style="margin-top:8px;">You can <a href="${escapeAttr(siteUrl)}" target="_top" rel="noopener">open the site directly</a> if embedding is not allowed.</div>';
       }
 
-      // 2. Write a temporary loading message in the blank tab
-      popup.document.write(`
-        <html>
-          <head>
-            <title>Loading...</title>
-            <style>
-              body { display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-              h1 { color: #555; }
-            </style>
-          </head>
-          <body>
-            <h1>Loading your Vercel app...</h1>
-          </body>
-        </html>
-      `);
+      let loaded = false;
+      iframe.addEventListener('load', () => {
+        loaded = true;
+        // If the site loaded but set itself to blank, we cannot inspect cross-origin,
+        // but we assume success when load fires and no obvious errors were thrown.
+        // If you control the embedded site, consider posting a message from it to confirm.
+      });
 
-      // 3. Wait a tiny bit (optional) and then redirect to your Vercel deployment
+      // If after 2s load hasn't happened, attempt a fallback check.
       setTimeout(() => {
-        popup.location.href = 'https://schoolhelp-ochre.vercel.app'; // <-- replace with your deployment URL
-      }, 500); // 500ms for loading effect
+        if (!loaded) {
+          // There's no reliable cross-origin way to know exact header blocks;
+          // we show a helpful fallback UI that includes a direct link.
+          showFallback('no load event detected within timeout — embedding may be blocked by the site or network.');
+        }
+      }, 2000);
+
+      // If the embedded page can postMessage back, this will clear the fallback:
+      window.addEventListener('message', (ev) => {
+        if (ev.data === '__EMBED_OK__') {
+          msg.style.display = 'none';
+        }
+      }, false);
+    <\/script>
+  </body>
+</html>
+      `;
+      // Write to the target window (about:blank window)
+      targetWindow.document.open();
+      targetWindow.document.write(html);
+      targetWindow.document.close();
+    }
+
+    // small escaping helpers for safety when inserting into HTML strings
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"]/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; });
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/'/g, '&#39;');
+    }
+
+    document.getElementById('openBtn').addEventListener('click', () => {
+      const site = document.getElementById('url').value.trim();
+      if (!site) return alert('Please enter a URL');
+      // open a new about:blank window and inject the iframe + fallback UI
+      const win = window.open('about:blank');
+      if (!win) { alert('Popup blocked. Allow popups for this site and try again.'); return; }
+      createAboutBlankWithIframe(site, win);
+    });
+
+    document.getElementById('openSameBtn').addEventListener('click', () => {
+      const site = document.getElementById('url').value.trim();
+      if (!site) return alert('Please enter a URL');
+      // Replace current document with about:blank content (same as opening new tab)
+      // Note: this will navigate away from this page.
+      const win = window.open('about:blank', '_self');
+      createAboutBlankWithIframe(site, win);
     });
   </script>
 </body>
